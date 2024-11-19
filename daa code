@@ -1,0 +1,106 @@
+import java.util.*;
+
+public class Main { 
+
+   
+    static class Graph {
+        private Map<String, List<String>> adjList = new HashMap<>();
+
+       
+        public void addEdge(String from, String to) {
+            adjList.computeIfAbsent(from, k -> new ArrayList<>()).add(to);
+        }
+
+      
+        public Set<String> getNodes() {
+            return adjList.keySet();
+        }
+
+        
+        public List<String> getNeighbors(String node) {
+            return adjList.getOrDefault(node, new ArrayList<>());
+        }
+    }
+
+
+    public static Graph buildKmerGraph(List<String> reads, int k) {
+        Graph graph = new Graph();
+        for (String read : reads) {
+            // Ensure indices are valid
+            for (int i = 0; i <= read.length() - k - 1; i++) {
+                String kmerStart = read.substring(i, i + k);
+                String kmerEnd = read.substring(i + 1, i + k + 1);
+                graph.addEdge(kmerStart, kmerEnd);
+            }
+        }
+        return graph;
+    }
+
+
+    public static List<String> findHamiltonianPath(Graph graph) {
+        Set<String> nodes = graph.getNodes();
+        for (String startNode : nodes) {
+            List<String> path = new ArrayList<>();
+            Set<String> visited = new HashSet<>();
+            if (dfs(graph, startNode, visited, path, nodes.size())) {
+                return path;
+            }
+        }
+        return null; // No Hamiltonian Path found
+    }
+
+    private static boolean dfs(Graph graph, String current, Set<String> visited, List<String> path, int totalNodes) {
+        visited.add(current);
+        path.add(current);
+
+       
+        if (visited.size() == totalNodes) {
+            return true;
+        }
+
+        for (String neighbor : graph.getNeighbors(current)) {
+            if (!visited.contains(neighbor)) {
+                if (dfs(graph, neighbor, visited, path, totalNodes)) {
+                    return true;
+                }
+            }
+        }
+
+        
+        visited.remove(current);
+        path.remove(path.size() - 1);
+        return false;
+    }
+
+    public static String assembleGenome(List<String> path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        StringBuilder genome = new StringBuilder(path.get(0));
+        for (int i = 1; i < path.size(); i++) {
+            genome.append(path.get(i).charAt(path.get(i).length() - 1));
+        }
+        return genome.toString();
+    }
+
+    public static void main(String[] args) {
+        
+        List<String> reads = Arrays.asList("AGCT", "GCTA", "CTAG", "TAGC");
+        int k = 3; // Length of k-mers
+
+       
+        Graph kmerGraph = buildKmerGraph(reads, k);
+
+       
+        List<String> hamiltonianPath = findHamiltonianPath(kmerGraph);
+
+        if (hamiltonianPath != null) {
+            System.out.println("Hamiltonian Path Found: " + hamiltonianPath);
+
+            String assembledGenome = assembleGenome(hamiltonianPath);
+            System.out.println("Assembled Genome: " + assembledGenome);
+        } else {
+            System.out.println("No Hamiltonian Path Found!");
+        }
+    }
+}
